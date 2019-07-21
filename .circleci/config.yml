@@ -1,0 +1,64 @@
+version: 2.1
+aliases:
+  - &defaults
+    working_directory: ~/template-template
+    docker:
+      - image: circleci/node:10
+  - &attach_workspace
+    - attach_workspace:
+        at: .
+jobs:
+  build:
+    <<: *defaults
+    steps:
+      - checkout
+      - run:
+          name: Update npm
+          command: 'sudo npm install -g npm@latest'
+      - restore_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+      - run:
+          name: Authenticate with registry
+          command: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+      - run:
+          name: Install dependencies
+          command: npm install
+      - save_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+          paths:
+            - node_modules
+      - run:
+          name: Build source
+          command: npm run build
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist
+            - node_modules
+  lint:
+    <<: *defaults
+    steps:
+      - checkout
+      - <<: *attach_workspace
+      - run:
+          name: Run lint
+          command: npm run lint
+  test:
+    <<: *defaults
+    steps:
+      - checkout
+      - <<: *attach_workspace
+      - run:
+          name: Run tests
+          command: npm run test
+workflows:
+  version: 2
+  commit:
+    jobs:
+      - build
+      - lint:
+          requires:
+            - build
+      - test:
+          requires:
+            - build
