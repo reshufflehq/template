@@ -1,40 +1,41 @@
 version: 2.1
 aliases:
   - &defaults
-    working_directory: ~/template-template
     docker:
-      - image: circleci/node:10
+      - image: cypress/base:10
   - &attach_workspace
     - attach_workspace:
-        at: .
+        at: ~/
 jobs:
   build:
     <<: *defaults
     steps:
       - checkout
-      - run:
-          name: Update npm
-          command: 'sudo npm install -g npm@latest'
       - restore_cache:
-          key: dependency-cache-{{ checksum "package-lock.json" }}
+          key: dependency-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
       - run:
           name: Authenticate with registry
           command: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
       - run:
           name: Install dependencies
           command: npm ci
+      - run:
+          command: npx cypress verify
       - save_cache:
-          key: dependency-cache-{{ checksum "package-lock.json" }}
+          key: dependency-cache-{{ arch }}-{{ .Branch }}-{{ checksum "package-lock.json" }}
           paths:
-            - node_modules
+            - ~/.npm
+            - ~/.cache
       - run:
           name: Build source
           command: npm run build
       - persist_to_workspace:
-          root: .
+          root: ~/
           paths:
             - dist
             - node_modules
+            - project
+            - .cache/Cypress
   lint:
     <<: *defaults
     steps:
@@ -43,14 +44,26 @@ jobs:
       - run:
           name: Run lint
           command: npm run lint
-  test:
+  unit-test:
     <<: *defaults
     steps:
       - checkout
       - <<: *attach_workspace
       - run:
-          name: Run tests
+          name: Run unit tests
           command: npm run test
+  integration-test:
+    <<: *defaults
+    steps:
+      - checkout
+      - <<: *attach_workspace
+      - run:
+          name: Start
+          command: npm start
+          background: true
+      - run:
+          name: Run integration tests
+          command: npx cypress run
 workflows:
   version: 2
   commit:
@@ -59,6 +72,9 @@ workflows:
       - lint:
           requires:
             - build
-      - test:
+      - unit-test:
+          requires:
+            - build
+      - integration-test:
           requires:
             - build
