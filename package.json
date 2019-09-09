@@ -5,10 +5,10 @@
   "license": "MIT",
   "dependencies": {
     "@binaris/shift-code-transform": "0.0.2",
-    "@binaris/shift-db": "^0.3.1",
+    "@binaris/shift-db": "^0.5.0",
     "@binaris/shift-fetch-runtime": "0.0.4",
-    "@binaris/shift-local-proxy": "0.0.11",
-    "@binaris/shift-server-function": "0.0.1",
+    "@binaris/shift-local-proxy": "^0.2.3",
+    "@binaris/shift-server-function": "0.0.4",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
     "react-scripts": "3.1.1"
